@@ -1,0 +1,45 @@
+Example Phrase,Dialect Cluster,Region,Latitude,Longitude,Audio File,Morphological Tag,Semantic Feature,Phonetic Variation,Syntactic Structure
+بھیا,Sindhi-Urdu,Karachi,24.8607,67.0011,audio/bhiya_sindhi.mp3,Noun,Vocative,Retroflex variation,Noun Phrase
+سائیں,Sindhi-Urdu,Hyderabad,25.3960,68.3578,audio/sain_sindhi.mp3,Noun,Honorific,Palatalization,Noun Phrase
+ابے بھائی ارے بھائی,Sindhi-Urdu,Karachi,24.8607,67.0011,audio/abaybhai_sindhi.mp3,Vocative Phrase,Call Attention,Aspiration,Vocative Structure
+اڑے یہ تم نے کیسا پان بنایا لو جی,Sindhi-Urdu,Karachi,24.8607,67.0011,audio/araypan_sindhi.mp3,Clause,Disapproval/Surprise,Diphthongal Shift,Complex Sentence
+چانول پیپسی کرانچی سیون اپ کھپے کھپے لگ ریا اے,Sindhi-Urdu,Larkana,27.5609,68.2121,audio/chanolkhapay_sindhi.mp3,Clause,Desire/Preference,Nasalized Vowels,Complex Sentence
+مجھے نہیں پتا۔,Sindhi-Urdu,Sukkur,27.7052,68.8574,audio/mujhenpata_sindhi.mp3,Pronoun+Neg+Verb,Ignorance,Syllable Stress,Simple Sentence
+اڑےیہ تم نے کیسا پان بنایا,Sindhi-Urdu,Karachi,24.8607,67.0011,audio/araypan2_sindhi.mp3,Clause,Disapproval,Fronting,Interrogative Structure
+وہ سکول گیا وا اے,Punjabi-Urdu,Lahore,31.5497,74.3436,audio/wohgaya_punjabi.mp3,Clause,Past Action,Vowel Lengthening,Declarative Sentence
+میں یہ دکان پہ ہوتا ہوں,Punjabi-Urdu,Faisalabad,31.4504,73.1350,audio/meindukaan_punjabi.mp3,Pronoun+Locative+Verb,Present Habitual,Mid-tone Shift,Simple Sentence
+جونسا مرضی,Punjabi-Urdu,Gujranwala,32.1877,74.1945,audio/jo_marzi_punjabi.mp3,Clause,Choice Expression,Voicing,Relative Clause
+میرے ابے نے بتایا تھا,Punjabi-Urdu,Lahore,31.5497,74.3436,audio/mereabe_punjabi.mp3,Pronoun+Noun+Verb,Reported Speech,Retroflex Retention,Past Tense Sentence
+میرے ابے کو دادے نے بتایا تھا,Punjabi-Urdu,Sialkot,32.4945,74.5229,audio/abedadapunjabi.mp3,Clause,Generational Memory,Lengthened Final Vowel,Complex Sentence
+یہاں کھابے ملتے ہیں,Punjabi-Urdu,Multan,30.1575,71.5249,audio/khabaymultan_punjabi.mp3,Locative+Noun+Verb,Food Reference,Nasal Assimilation,Simple Sentence
+باندر کا تماشہ,Punjabi-Urdu,Rawalpindi,33.5651,73.0169,audio/bandartamasha_punjabi.mp3,Noun Phrase,Entertainment,Stress Shift,Noun Phrase
+ماڑا,Pashto-Urdu,Peshawar,34.0150,71.5805,audio/mara_pashto.mp3,Adjective,Diminutive,Stress on First Syllable,Single Word
+میرا بہن آ رہا ہے,Pashto-Urdu,Quetta,30.1798,66.9750,audio/bahanquettapashto.mp3,Pronoun+Noun+Verb,Present Continuous,Epenthesis,Simple Sentence
+یہ سارا چپس آپ کا ہے,Pashto-Urdu,Swat,35.2220,72.4258,audio/chipsswat_pashto.mp3,Demonstrative+Noun+Possessive,Ownership,Vowel Backing,Simple Sentence
+کدھر کو جاتا ہے,Pashto-Urdu,Mardan,34.1982,72.0448,audio/kidharpashto.mp3,Interrogative+Postposition+Verb,Direction Inquiry,Stress on Verb,Interrogative Sentence
+ہم پشاور جائے گا,Pashto-Urdu,Peshawar,34.0150,71.5805,audio/jayegapashto.mp3,Pronoun+Place+Verb,Future Action,Verb Agreement Variation,Simple Sentence
+بہت اچھا لگا,Pashto-Urdu,Kohat,33.5860,71.4350,audio/bhutlagapashto.mp3,Adverb+Adjective+Verb,Pleasure Expression,Neutral Tone,Simple Sentence
+میرا بیٹی نے اچھے نمبر لیے ہیں,Pashto-Urdu,Bannu,32.9850,70.6042,audio/meribeti_pashto.mp3,Possessive+Noun+Verb,Achievement,Fricative Shift,Complex Sentence
+یہاں یہ لے کر آئے ہیں ہم کو,Saraiki-Urdu,Multan,30.1575,71.5249,audio/lekaraye_saraiki.mp3,Locative+Pronoun+Verb,Action Description,Aspiration,Complex Sentence
+آج ہم کو گھما رہے ہیں,Saraiki-Urdu,Dera Ghazi Khan,30.0500,70.6333,audio/ghumarahe_saraiki.mp3,Adverb+Pronoun+Verb,Ongoing Action,Nasal Retention,Present Continuous
+یہ ملتان کی بہترین چائیوں میں سے ہے,Saraiki-Urdu,Multan,30.1575,71.5249,audio/bestchai_saraiki.mp3,Clause,Comparative Quality,Vowel Nasalization,Superlative Structure
+یہاں کافی لوگ آ رکھے ہیں,Saraiki-Urdu,Bahawalpur,29.3956,71.6833,audio/kafilog_saraiki.mp3,Locative+Noun+Verb,Population Observation,Neutral Pitch,Present Perfect
+میرے کو بتایا تھا,Saraiki-Urdu,Rahim Yar Khan,28.4202,70.2959,audio/merekobataya_saraiki.mp3,Pronoun+Verb,Reported Speech,Aspirated Consonants,Past Tense
+اڑےیہ تم نے کیسا پان بنایا,Standard-Urdu,Islamabad,33.6844,73.0479,audio/araypan_std.mp3,Clause,Surprise,Diphthongal Neutral,Interrogative
+وہ سکول گیا ہوا ہے,Standard-Urdu,Islamabad,33.6844,73.0479,audio/gayahua_std.mp3,Clause,Past Completed Action,Standard Pitch,Past Perfect
+میں دکان پہ ہوتا ہوں,Standard-Urdu,Rawalpindi,33.5651,73.0169,audio/dukankistd.mp3,Pronoun+Locative+Verb,Present Habitual,None,Simple Sentence
+جو مرضی,Standard-Urdu,Islamabad,33.6844,73.0479,audio/jomarzi_std.mp3,Clause,Free Choice,Standard Vowel,Relative Clause
+میرے ابو نے بتایا تھا,Standard-Urdu,Islamabad,33.6844,73.0479,audio/abubataya_std.mp3,Clause,Reported Speech,Standard Consonants,Past Perfect
+میرے ابو کو دادا نے بتایا تھا,Standard-Urdu,Rawalpindi,33.5651,73.0169,audio/abudadabataya_std.mp3,Clause,Oral Tradition,None,Compound Sentence
+یہاں پکوان ملتے ہیں,Standard-Urdu,Lahore,31.5497,74.3436,audio/pakwan_std.mp3,Locative+Noun+Verb,Food Offering,None,Simple Sentence
+بندر کا تماشہ,Standard-Urdu,Lahore,31.5497,74.3436,audio/bandartamasha_std.mp3,Noun Phrase,Entertainment,Standard Pronunciation,Noun Phrase
+میری بہن آرہی ہے,Standard-Urdu,Islamabad,33.6844,73.0479,audio/meri_bahan_std.mp3,Pronoun+Noun+Verb,Arrival,None,Present Continuous
+یہ سارے چپس آپ کے ہیں,Standard-Urdu,Islamabad,33.6844,73.0479,audio/chips_std.mp3,Pronoun+Noun+Possessive,Possession,None,Simple Sentence
+کدھر جا رہے ہو,Standard-Urdu,Islamabad,33.6844,73.0479,audio/kidharja_std.mp3,Interrogative+Verb,Direction Inquiry,Standard Inflection,Question
+میں پشاور جاؤں گا,Standard-Urdu,Peshawar,34.0150,71.5805,audio/peshawarjaunga_std.mp3,Pronoun+Verb+Place,Future Action,Standard Rhythm,Future Tense
+بہت اچھا لگا,Standard-Urdu,Multan,30.1575,71.5249,audio/bhutlagastd.mp3,Adverb+Adjective+Verb,Pleasure,None,Simple Sentence
+ارے یہ آپ نے کیسا پان بنایا ہے,Standard-Urdu,Karachi,24.8607,67.0011,audio/arayapka_std.mp3,Clause,Surprise,None,Interrogative
+یہ مجھے یہاں لے کر آئے ہیں,Standard-Urdu,Hyderabad,25.3960,68.3578,audio/layehain_std.mp3,Clause,Transport Action,None,Present Perfect
+یہ ملتان کی بہترین چائے ہے,Standard-Urdu,Multan,30.1575,71.5249,audio/bestchai_std.mp3,Clause,Comparison,None,Superlative Structure
+کافی لوگ آئے ہوئے ہیں,Standard-Urdu,Lahore,31.5497,74.3436,audio/kafilog_std.mp3,Clause,Observation,None,Present Perfect
+مجھے بتایا تھا,Standard-Urdu,Rawalpindi,33.5651,73.0169,audio/bataya_std.mp3,Pronoun+Verb,Reported Speech,None,Past Perfect
