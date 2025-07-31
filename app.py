@@ -13,7 +13,7 @@ You can explore regional phrases, filter dialects, and analyze geographic trends
 """)
 
 # Load the CSV file
-@st.cache_data
+# @st.cache_data  # temporarily disabled
 def load_data():
     try:
         df = pd.read_csv("dialect_samples_with_locations.csv")
