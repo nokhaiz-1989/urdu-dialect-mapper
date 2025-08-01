@@ -3,30 +3,28 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 from collections import Counter
-from io import StringIO
 import os
 import re
-import speech_recognition as sr
 
+# --------------------- Setup ---------------------
 st.set_page_config(page_title="Digital Dialectal Mapper", layout="wide")
 
-# ---------- Load Data ----------
+# --------------------- Data Loader ---------------------
 def load_data():
-    file_path = "dialect_samples_extended.csv"
-    if os.path.exists(file_path):
-        return pd.read_csv(file_path)
+    path = "dialect_samples_extended.csv"
+    if os.path.exists(path):
+        return pd.read_csv(path)
     else:
         return pd.DataFrame(columns=[
             "Dialect Cluster", "Example Phrase", "Region", "Latitude", "Longitude",
             "Morphological Tag", "Semantic Feature", "Phonetic Variation",
-            "Syntactic Structure", "Audio File"
-        ])
+            "Syntactic Structure", "Audio File"])
 
-# ---------- Tokenizer ----------
+# --------------------- Tokenizer ---------------------
 def tokenize(text):
     return re.findall(r'\b\w+\b', str(text).lower())
 
-# ---------- Collocate Extractor ----------
+# --------------------- Collocate Extractor ---------------------
 def extract_collocates(df, dialect, keyword, window=2):
     phrases = df[df["Dialect Cluster"] == dialect]["Example Phrase"].dropna().tolist()
     collocates = Counter()
@@ -40,7 +38,7 @@ def extract_collocates(df, dialect, keyword, window=2):
                 collocates.update(context)
     return collocates.most_common(10)
 
-# ---------- Color by Dialect ----------
+# --------------------- Dialect Color ---------------------
 def assign_color(dialect):
     color_map = {
         'Sindhi-Urdu': 'red',
@@ -52,7 +50,7 @@ def assign_color(dialect):
     }
     return color_map.get(dialect, 'gray')
 
-# ---------- Dialect Prediction ----------
+# --------------------- Heuristic Dialect Prediction ---------------------
 def predict_dialect(text):
     text = text.lower()
     if any(word in text for word in ["توھان", "اچو", "چئو"]):
@@ -68,51 +66,29 @@ def predict_dialect(text):
     else:
         return "Standard Urdu"
 
-# ---------- App Starts ----------
+# --------------------- Load Data ---------------------
 data = load_data()
 
+# --------------------- User Input ---------------------
 st.markdown("---")
-st.subheader("🗣️ Public User Text Input")
+st.subheader("\U0001F4AC Public User Text Input")
 
-input_type = st.radio("Choose input type:", ["Written", "Spoken"], horizontal=True)
-user_input = ""
+user_input = st.text_area("Paste your written Urdu text here:", height=200)
 
-if input_type == "Spoken":
-    if 'transcription' not in st.session_state:
-        st.session_state.transcription = ""
-    if st.button("🎙️ Record and Transcribe Audio"):
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.info("Recording... Speak now")
-            audio = recognizer.listen(source, phrase_time_limit=5)
-        try:
-            st.session_state.transcription = recognizer.recognize_google(audio, language="ur-PK")
-            st.success("Transcription successful")
-        except sr.UnknownValueError:
-            st.session_state.transcription = ""
-            st.error("Could not understand the audio")
-        except sr.RequestError:
-            st.session_state.transcription = ""
-            st.error("Speech recognition service unavailable")
-    user_input = st.text_area("Your transcribed Urdu text:", value=st.session_state.transcription, height=200)
-else:
-    user_input = st.text_area("Paste written Urdu text:", height=200)
-
-# ---------- Dialect Prediction ----------
 dialect_guess = ""
-if st.checkbox("Predict dialect automatically"):
+if st.checkbox("Predict dialect automatically from input OR select below:"):
     dialect_guess = predict_dialect(user_input)
-    st.info(f"Predicted dialect: **{dialect_guess}**")
+    st.info(f"Predicted dialect: {dialect_guess}")
 else:
-    dialect_guess = st.selectbox("Select dialect:", [
-        "Standard Urdu", "Sindhi-Urdu", "Punjabi-Urdu", "Seraiki-Urdu",
-        "Pashto-Urdu", "Balochi-Urdu"
+    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", [
+        "Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu",
+        "Seraiki-Urdu", "Sindhi-Urdu", "Punjabi-Urdu", "Pashto-Urdu", "Balochi-Urdu"
     ])
 
-# ---------- Save and Tag ----------
-if st.button("📥 Submit Input"):
+if st.button("Submit Text"):
     if user_input.strip():
-        st.success(f"Text submitted successfully as {input_type} input.")
+        st.success(f"Text submitted successfully for {dialect_guess} dialect.")
+
         new_row = {
             "Dialect Cluster": dialect_guess,
             "Example Phrase": user_input,
@@ -125,32 +101,25 @@ if st.button("📥 Submit Input"):
             "Syntactic Structure": "Pending",
             "Audio File": None
         }
+
         data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
 
-        feature_table = pd.DataFrame([{
+        st.markdown("### \U0001F50D Preliminary Linguistic Feature Analysis")
+        st.dataframe(pd.DataFrame([{
             "Dialect": dialect_guess,
             "Phonetic Feature (Accent/Prosody)": "Pending Analysis",
-            "Phonological Shift/Variants": "Pending",
-            "Morphological Variation": "Pending",
-            "Semantic Feature": "Pending"
-        }])
-        st.markdown("### 🧬 Preliminary Linguistic Feature Analysis")
-        st.dataframe(feature_table)
+            "Phonological Shift/Variants": "Pending Analysis",
+            "Morphological Variation": "Pending Analysis",
+            "Semantic Feature": "Pending Analysis"
+        }]))
     else:
-        st.warning("⚠️ Please enter some text.")
+        st.warning("Please provide input text.")
 
-# ---------- Map ----------
+# --------------------- Dialect Map ---------------------
 m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+
 for _, row in data.iterrows():
-    color = assign_color(row["Dialect Cluster"])
-    popup = f"""
-        <b>Dialect:</b> {row['Dialect Cluster']}<br>
-        <b>Phrase:</b> {row['Example Phrase']}<br>
-        <b>Region:</b> {row['Region']}<br>
-        <b>Morph:</b> {row['Morphological Tag']}<br>
-        <b>Semantic:</b> {row['Semantic Feature']}<br>
-        <b>Phonetic:</b> {row['Phonetic Variation']}<br>
-    """
+    color = assign_color(row['Dialect Cluster'])
     folium.Circle(
         location=[row["Latitude"], row["Longitude"]],
         radius=20000,
@@ -159,32 +128,49 @@ for _, row in data.iterrows():
         fill_opacity=0.2,
         fill_color=color
     ).add_to(m)
+
+    popup_html = f"""
+    <b>Dialect:</b> {row['Dialect Cluster']}<br>
+    <b>Region:</b> {row['Region']}<br>
+    <b>Phrase:</b> {row['Example Phrase']}<br>
+    <b>Morph:</b> {row['Morphological Tag']}<br>
+    <b>Semantic:</b> {row['Semantic Feature']}<br>
+    <b>Phonetic:</b> {row['Phonetic Variation']}<br>
+    <b>Syntactic:</b> {row['Syntactic Structure']}<br>
+    """
     folium.Marker(
         location=[row["Latitude"], row["Longitude"]],
-        popup=popup,
+        popup=folium.Popup(popup_html, max_width=300),
         icon=folium.Icon(color=color)
     ).add_to(m)
 
-st.subheader("🗺️ Urdu Dialect Map")
+st.subheader("\U0001F5FA Urdu Dialect Map")
 st_folium(m, width=1000, height=600)
 
-# ---------- Token Frequency ----------
-st.subheader("📊 Token Frequency in Dialect")
+# --------------------- Token Frequency ---------------------
+st.subheader("\U0001F4CA Token Frequency in Dialect")
 dialect_options = data["Dialect Cluster"].dropna().unique().tolist()
-selected_dialect = st.selectbox("Select a dialect:", ["All"] + dialect_options)
+selected_dialect = st.selectbox("Select a Dialect for Analysis", ["All"] + dialect_options)
 
-filtered_data = data.copy() if selected_dialect == "All" else data[data["Dialect Cluster"] == selected_dialect]
-tokens = [token for phrase in filtered_data["Example Phrase"].dropna() for token in tokenize(phrase)]
+if selected_dialect != "All":
+    filtered_data = data[data["Dialect Cluster"] == selected_dialect]
+else:
+    filtered_data = data.copy()
+
+tokens = []
+for phrase in filtered_data["Example Phrase"].dropna():
+    tokens.extend(tokenize(phrase))
+
 token_counts = Counter(tokens).most_common(10)
-st.dataframe(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
+st.write(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
 
-# ---------- Collocates ----------
-keyword = st.text_input("🔍 Enter keyword for collocate analysis")
+# --------------------- Collocate Explorer ---------------------
+keyword = st.text_input("Enter a keyword for collocate analysis")
 if keyword and selected_dialect != "All":
+    st.subheader(f"\U0001F50D Top Collocates with '{keyword}' in {selected_dialect}")
     collocates = extract_collocates(data, selected_dialect, keyword)
-    st.subheader(f"Top Collocates with '{keyword}' in {selected_dialect}")
-    st.dataframe(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
+    st.write(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
 
-# ---------- Full Table ----------
-st.subheader("📄 Full Annotated Dataset")
+# --------------------- Complete Data Table ---------------------
+st.subheader("\U0001F4CB Complete Annotated Dataset")
 st.dataframe(data.reset_index(drop=True), use_container_width=True)
