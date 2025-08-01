@@ -98,7 +98,8 @@ if input_type == "Spoken":
 else:
     user_input = st.text_area("Paste your written Urdu text here:", height=200)
 
-if st.checkbox("Predict dialect automatically from input"):
+dialect_guess = ""
+if st.checkbox("Predict dialect automatically from input OR select below:"):
     dialect_guess = predict_dialect(user_input)
     st.info(f"Predicted dialect: {dialect_guess}")
 else:
@@ -197,4 +198,4 @@ if keyword and selected_dialect != "All":
 
 # Raw Table
 st.subheader("\U0001F4CB Complete Annotated Dataset")
-st.dataframe(filtered_data.reset_index(drop=True), use_container_width=True)
+st.dataframe(data.reset_index(drop=True), use_container_width=True)
