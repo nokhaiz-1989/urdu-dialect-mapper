@@ -61,23 +61,59 @@ keyword = st.sidebar.text_input("Enter a keyword for collocate analysis")
 st.sidebar.markdown("---")
 st.sidebar.header("\U0001F4DA Dialect Corpus Viewer")
 
-corpus_files = {
+st.sidebar.markdown("**Written Corpus**")
+written_corpus_files = {
     "Standard Urdu": "standard_urdu_corpus.txt",
-    # Add more corpora here
+    # Add more written corpora here
 }
+selected_written = st.sidebar.selectbox("Written Dialect Corpus", ["None"] + list(written_corpus_files.keys()))
 
-selected_corpus = st.sidebar.selectbox("Select a Dialect Corpus", ["None"] + list(corpus_files.keys()))
+st.sidebar.markdown("**Spoken Corpus**")
+spoken_corpus_files = {
+    # Add spoken corpora here
+}
+selected_spoken = st.sidebar.selectbox("Spoken Dialect Corpus", ["None"] + list(spoken_corpus_files.keys()))
 
 # Load and display selected corpus
-if selected_corpus != "None":
-    corpus_path = os.path.join("corpora", corpus_files[selected_corpus])
-    if os.path.exists(corpus_path):
-        with open(corpus_path, "r", encoding="utf-8") as f:
-            corpus_text = f.read()
-        st.subheader(f"\U0001F4D6 Corpus: {selected_corpus}")
-        st.text_area("Full Corpus Text", value=corpus_text, height=400)
+if selected_written != "None":
+    path = os.path.join("corpora", written_corpus_files[selected_written])
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+        st.subheader(f"\U0001F4D6 Written Corpus: {selected_written}")
+        st.text_area("Full Corpus Text", value=text, height=300)
     else:
-        st.warning(f"Corpus file for {selected_corpus} not found.")
+        st.warning(f"Corpus file for {selected_written} not found.")
+
+if selected_spoken != "None":
+    path = os.path.join("corpora", spoken_corpus_files[selected_spoken])
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+        st.subheader(f"\U0001F399 Spoken Corpus: {selected_spoken}")
+        st.text_area("Full Spoken Corpus", value=text, height=300)
+    else:
+        st.warning(f"Corpus file for {selected_spoken} not found.")
+
+# User input section
+st.markdown("---")
+st.subheader("\U0001F4AC Public User Text Input")
+
+input_type = st.radio("Choose input type:", ["Written", "Spoken"], horizontal=True)
+user_input = st.text_area(f"Paste your {input_type.lower()} Urdu text here:", height=200)
+dialect_guess = st.selectbox("Select dialect to associate with input (optional):", ["Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
+
+if st.button("Submit Text"):
+    st.success(f"Text submitted successfully as {input_type} input for {dialect_guess} dialect.")
+    feature_table = pd.DataFrame([{
+        "Dialect": dialect_guess,
+        "Phonetic Feature (Accent/Prosody)": "Pending Analysis",
+        "Phonological Shift/Variants": "Pending Analysis",
+        "Morphological Variation": "Pending Analysis",
+        "Semantic Feature": "Pending Analysis"
+    }])
+    st.markdown("### \U0001F50D Preliminary Linguistic Feature Analysis")
+    st.dataframe(feature_table)
 
 # Filter data
 if selected_dialect != "All":
@@ -88,8 +124,19 @@ else:
 # Map Initialization
 m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
 
-# Add markers with color
+# Add colored region circles and markers
+dialect_colors = {dial: assign_color(dial) for dial in data["Dialect Cluster"].unique()}
 for _, row in filtered_data.iterrows():
+    color = assign_color(row['Dialect Cluster'])
+    folium.Circle(
+        location=[row["Latitude"], row["Longitude"]],
+        radius=20000,
+        color=color,
+        fill=True,
+        fill_opacity=0.2,
+        fill_color=color
+    ).add_to(m)
+
     popup_html = f"""
     <b>Dialect:</b> {row['Dialect Cluster']}<br>
     <b>Region:</b> {row['Region']}<br>
@@ -105,12 +152,12 @@ for _, row in filtered_data.iterrows():
     folium.Marker(
         location=[row["Latitude"], row["Longitude"]],
         popup=folium.Popup(popup_html, max_width=300),
-        icon=folium.Icon(color=assign_color(row['Dialect Cluster']))
+        icon=folium.Icon(color=color)
     ).add_to(m)
 
 # Display the map
 st.subheader("\U0001F5FA Urdu Dialect Map")
-st_folium(m, width=1000, height=550)
+st_folium(m, width=1000, height=600)
 
 # Token Frequency
 st.subheader("\U0001F4CA Token Frequency in Dialect")
