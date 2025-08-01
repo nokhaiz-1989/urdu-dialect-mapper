@@ -1,98 +1,108 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import numpy as np
-import difflib
+import folium
+from streamlit_folium import st_folium
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import os
 
-# Set up the page
-st.set_page_config(page_title="Urdu Dialect Mapping Tool", layout="wide")
+# Set page configuration
+st.set_page_config(page_title="Urdu Dialect Mapper", layout="wide")
 
-# Title and description
-st.title("📍 Digital Dialectal Mapping and Profiling System for Urdu")
-st.markdown("""
-This tool visualizes **Urdu dialect clusters** across regions of Pakistan.
-You can explore regional phrases, listen to voice samples, and analyze linguistic patterns.
-""")
+st.title("🗺️ Urdu Dialect Mapping and Profiling System")
+st.markdown("Explore Urdu dialects across regions with audio, linguistic features, and similarity analysis.")
 
-# Load data
-@st.cache_data
-def load_data():
-    file_path = "dialect_samples_extended.csv"
-    if not os.path.exists(file_path):
-        st.error(f"❌ File not found: {file_path}")
-        return pd.DataFrame()
-    df = pd.read_csv(file_path)
-    return df
+# Load CSV
+csv_file = "dialect_samples_extended.csv"
 
-df = load_data()
+required_columns = {
+    "Example Phrase", "Dialect Cluster", "Region", "Latitude", "Longitude",
+    "Audio File", "Morphological Tag", "Semantic Feature", 
+    "Phonetic Variation", "Syntactic Structure"
+}
 
-required_cols = {"Example Phrase", "Dialect Cluster", "Region", "Latitude", "Longitude", 
-                 "Audio File", "Morphological Tag", "Semantic Feature", 
-                 "Phonetic Variation", "Syntactic Structure"}
-if not required_cols.issubset(df.columns):
-    st.error(f"❗ CSV must contain these columns:\n{required_cols}")
+if not os.path.isfile(csv_file):
+    st.error(f"❌ File not found: {csv_file}")
+    st.warning(f"❗ CSV must contain these columns: {required_columns}")
     st.stop()
 
-# Sidebar: Filter clusters
-st.sidebar.header("🎯 Filter Dialect Clusters")
-clusters = df["Dialect Cluster"].unique().tolist()
-selected_clusters = st.sidebar.multiselect("Select Cluster(s):", options=clusters, default=clusters)
+df = pd.read_csv(csv_file)
 
-filtered_df = df[df["Dialect Cluster"].isin(selected_clusters)]
+if not required_columns.issubset(df.columns):
+    st.error("❌ CSV is missing one or more required columns.")
+    st.warning(f"❗ Required columns: {required_columns}")
+    st.stop()
 
-# Show data
-st.subheader("📋 Dialect Samples with Linguistic Annotations")
-st.dataframe(filtered_df.drop(columns=["Audio File"]), use_container_width=True)
+# Show map
+st.subheader("🧭 Dialect Distribution Map")
 
-# Play audio samples
-st.subheader("🔊 Play Audio Samples")
-for idx, row in filtered_df.iterrows():
-    st.markdown(f"**{row['Dialect Cluster']} – {row['Region']}**")
-    st.text(f"Phrase: {row['Example Phrase']}")
-    if os.path.exists(row['Audio File']):
-        st.audio(row['Audio File'], format='audio/mp3')
+m = folium.Map(location=[30.3753, 69.3451], zoom_start=5.2)
+
+for _, row in df.iterrows():
+    popup_text = f"""
+    <b>Dialect:</b> {row['Dialect Cluster']}<br>
+    <b>Phrase:</b> {row['Example Phrase']}<br>
+    <b>Region:</b> {row['Region']}<br>
+    <b>Morphology:</b> {row['Morphological Tag']}<br>
+    <b>Phonetics:</b> {row['Phonetic Variation']}<br>
+    <b>Semantics:</b> {row['Semantic Feature']}<br>
+    <b>Syntax:</b> {row['Syntactic Structure']}<br>
+    """
+    folium.Marker(
+        location=[row['Latitude'], row['Longitude']],
+        popup=popup_text,
+        tooltip=row['Dialect Cluster'],
+        icon=folium.Icon(color="blue", icon="info-sign")
+    ).add_to(m)
+
+st_data = st_folium(m, width=700, height=500)
+
+# Dialect details
+st.subheader("🔎 Explore Phrases by Dialect")
+
+dialect_options = sorted(df['Dialect Cluster'].unique())
+selected_dialect = st.selectbox("Choose a dialect cluster", dialect_options)
+
+filtered_df = df[df['Dialect Cluster'] == selected_dialect]
+
+for _, row in filtered_df.iterrows():
+    st.markdown(f"**🗣️ Phrase:** {row['Example Phrase']}")
+    st.markdown(f"- 📍 Region: {row['Region']}")
+    st.markdown(f"- 🧬 Morphological Tag: {row['Morphological Tag']}")
+    st.markdown(f"- 🗣️ Phonetic Variation: {row['Phonetic Variation']}")
+    st.markdown(f"- 🧠 Semantic Feature: {row['Semantic Feature']}")
+    st.markdown(f"- 🧵 Syntactic Structure: {row['Syntactic Structure']}")
+
+    # Audio playback
+    audio_path = row['Audio File']
+    if os.path.isfile(audio_path):
+        ext = os.path.splitext(audio_path)[1].lower()
+        audio_format = "audio/mp3"  # default
+        if ext == ".m4a":
+            audio_format = "audio/m4a"
+        elif ext == ".wav":
+            audio_format = "audio/wav"
+        with open(audio_path, "rb") as audio_file:
+            audio_bytes = audio_file.read()
+            st.audio(audio_bytes, format=audio_format)
     else:
-        st.warning("Audio sample not available.")
+        st.info(f"🔇 Audio file not found: `{audio_path}`")
 
-# Pie chart
-st.subheader("📊 Dialect Distribution")
-pie = px.pie(
-    filtered_df,
-    names="Dialect Cluster",
-    title="Distribution by Dialect Cluster",
-    hole=0.4
-)
-st.plotly_chart(pie, use_container_width=True)
+    st.markdown("---")
 
-# Map
-st.subheader("🗺️ Geographical Mapping of Urdu Dialects")
-map_fig = px.scatter_mapbox(
-    filtered_df,
-    lat="Latitude",
-    lon="Longitude",
-    color="Dialect Cluster",
-    hover_name="Region",
-    hover_data=["Example Phrase"],
-    zoom=5,
-    height=600
-)
-map_fig.update_layout(mapbox_style="open-street-map")
-map_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
-st.plotly_chart(map_fig, use_container_width=True)
+# Dialect similarity
+st.subheader("📊 Dialect Similarity Matrix")
 
-# Similarity analysis
-st.subheader("📈 Dialect Similarity (Levenshtein Distance)")
-phrase_options = filtered_df["Example Phrase"].tolist()
-phrase1 = st.selectbox("Select Phrase 1", phrase_options, key="p1")
-phrase2 = st.selectbox("Select Phrase 2", phrase_options, key="p2")
+phrases = df['Example Phrase'].astype(str)
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(phrases)
+similarity_matrix = cosine_similarity(tfidf_matrix)
 
-def levenshtein_ratio(a, b):
-    return difflib.SequenceMatcher(None, a, b).ratio()
+# Add index as dialect + region
+df_index = df['Dialect Cluster'] + " | " + df['Region']
+similarity_df = pd.DataFrame(similarity_matrix, index=df_index, columns=df_index)
 
-similarity = levenshtein_ratio(phrase1, phrase2)
-st.info(f"Similarity between selected phrases: **{similarity:.2f}**")
+st.dataframe(similarity_df.style.background_gradient(cmap='Blues'), use_container_width=True)
 
-# Footer
-st.markdown("---")
-st.markdown("📌 Developed for linguistic profiling and dialect recognition in Pakistan.")
+st.success("✅ App loaded successfully. Explore dialectal diversity now!")
+
