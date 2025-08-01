@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "dialect": "Lahori" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.3, 31.5], [74.4, 31.5], [74.4, 31.6], [74.3, 31.6], [74.3, 31.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "dialect": "Karachi" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[67.0, 24.8], [67.2, 24.8], [67.2, 25.0], [67.0, 25.0], [67.0, 24.8]]]
+      }
+    }
+  ]
+}
