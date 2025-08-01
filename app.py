@@ -3,12 +3,11 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import os
+import itertools
 
-# Config
+# Configuration
 CSV_PATH = "dialect_samples_extended.csv"
 AUDIO_FOLDER = "audio"
-
-# Required CSV columns
 REQUIRED_COLUMNS = {
     'Region', 'Dialect Cluster', 'Latitude', 'Longitude',
     'Example Phrase', 'Audio File'
@@ -23,20 +22,33 @@ def load_data(path):
         return None
     return df
 
+def get_dialect_colors(dialects):
+    color_cycle = itertools.cycle([
+        "red", "blue", "green", "purple", "orange",
+        "darkred", "lightred", "beige", "darkblue",
+        "darkgreen", "cadetblue", "darkpurple", "white",
+        "pink", "lightblue", "lightgreen", "gray", "black"
+    ])
+    return {dialect: next(color_cycle) for dialect in sorted(dialects)}
+
 def create_map(df):
+    dialect_colors = get_dialect_colors(df["Dialect Cluster"].unique())
     m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+
     for _, row in df.iterrows():
-        popup = f"""
+        popup_html = f"""
         <b>{row['Dialect Cluster']}</b><br>
-        Phrase: {row['Example Phrase']}<br>
+        <i>{row['Example Phrase']}</i><br>
         Region: {row['Region']}
         """
+        color = dialect_colors.get(row["Dialect Cluster"], "blue")
         folium.Marker(
             location=[row['Latitude'], row['Longitude']],
-            popup=popup,
+            popup=popup_html,
             tooltip=row['Dialect Cluster'],
-            icon=folium.Icon(color="green", icon="info-sign")
+            icon=folium.Icon(color=color)
         ).add_to(m)
+
     return m
 
 def play_audio(file_name):
@@ -52,31 +64,33 @@ def play_audio(file_name):
     else:
         st.warning(f"🔇 Audio file not found: {file_name}")
 
-# App layout
+# Streamlit layout
 st.set_page_config(page_title="Urdu Dialect Mapping Tool", layout="wide")
 st.title("🗺️ Urdu Dialect Mapping and Profiling System")
 st.markdown("Visualizes regional Urdu dialects with linguistic examples and recorded speech samples.")
 
-# Load and validate data
+# Load CSV
 if not os.path.exists(CSV_PATH):
     st.error(f"❌ File not found: {CSV_PATH}")
 else:
     df = load_data(CSV_PATH)
     if df is not None:
-        # Display map
-        st.subheader("🧭 Regional Dialect Map")
-        map_component = create_map(df)
-        st_folium(map_component, width=1150, height=550)
+        # Map + Table layout
+        col1, col2 = st.columns([2, 1])
 
-        # Display table and audio
-        st.subheader("🔉 Dialect Examples with Audio")
-        for idx, row in df.iterrows():
-            st.markdown(f"**Dialect Cluster:** {row['Dialect Cluster']}")
-            st.markdown(f"📍 *Region:* {row['Region']}")
-            st.markdown(f"📝 *Phrase:* {row['Example Phrase']}")
-            play_audio(row.get("Audio File", ""))
-            st.markdown("---")
+        with col1:
+            st.subheader("📍 Interactive Map (Color-coded by Dialect)")
+            map_component = create_map(df)
+            st_folium(map_component, width=900, height=550)
 
-        # Show full table
-        with st.expander("📊 View Full Data Table"):
+        with col2:
+            st.subheader("🔉 Play Dialect Samples")
+            for idx, row in df.iterrows():
+                st.markdown(f"**Dialect:** {row['Dialect Cluster']}")
+                st.markdown(f"📍 *{row['Region']}* — _{row['Example Phrase']}_")
+                play_audio(row['Audio File'])
+                st.markdown("---")
+
+        # Full table below with expandable option
+        with st.expander("📊 View Full Data Table", expanded=False):
             st.dataframe(df, use_container_width=True)
