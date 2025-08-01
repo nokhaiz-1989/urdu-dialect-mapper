@@ -3,18 +3,62 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "dialect": "Lahori" },
+      "properties": {
+        "dialect": "Sindhi-Urdu"
+      },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[74.3, 31.5], [74.4, 31.5], [74.4, 31.6], [74.3, 31.6], [74.3, 31.5]]]
+        "coordinates": [[[67.0, 24.0], [68.0, 24.0], [68.0, 25.0], [67.0, 25.0], [67.0, 24.0]]]
       }
     },
     {
       "type": "Feature",
-      "properties": { "dialect": "Karachi" },
+      "properties": {
+        "dialect": "Punjabi-Urdu"
+      },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[67.0, 24.8], [67.2, 24.8], [67.2, 25.0], [67.0, 25.0], [67.0, 24.8]]]
+        "coordinates": [[[73.0, 31.0], [74.0, 31.0], [74.0, 32.0], [73.0, 32.0], [73.0, 31.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dialect": "Seraiki-Urdu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[70.0, 29.0], [71.0, 29.0], [71.0, 30.0], [70.0, 30.0], [70.0, 29.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dialect": "Pashto-Urdu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[71.0, 34.0], [72.0, 34.0], [72.0, 35.0], [71.0, 35.0], [71.0, 34.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dialect": "Balochi-Urdu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[63.0, 26.0], [64.0, 26.0], [64.0, 27.0], [63.0, 27.0], [63.0, 26.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dialect": "Standard Urdu"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[66.8, 33.5], [67.5, 33.5], [67.5, 34.2], [66.8, 34.2], [66.8, 33.5]]]
       }
     }
   ]
