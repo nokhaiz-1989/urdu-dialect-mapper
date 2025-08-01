@@ -14,8 +14,13 @@ st.set_page_config(page_title="Digital Dialectal Mapper", layout="wide")
 # Load the CSV data
 def load_data():
     path = "dialect_samples_extended.csv"
-    df = pd.read_csv(path)
-    return df
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    else:
+        return pd.DataFrame(columns=[
+            "Dialect Cluster", "Example Phrase", "Region", "Latitude", "Longitude",
+            "Morphological Tag", "Semantic Feature", "Phonetic Variation",
+            "Syntactic Structure", "Audio File"])
 
 # Tokenizer for simple word frequency
 def tokenize(text):
@@ -40,7 +45,7 @@ def assign_color(dialect):
     color_map = {
         'Sindhi-Urdu': 'red',
         'Punjabi-Urdu': 'blue',
-        'Saraiki-Urdu': 'green',
+        'Seraiki-Urdu': 'green',
         'Pashto-Urdu': 'orange',
         'Balochi-Urdu': 'purple',
         'Standard Urdu': 'darkblue'
