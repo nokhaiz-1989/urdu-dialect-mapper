@@ -71,12 +71,11 @@ def predict_dialect(text):
 # Load and process data
 data = load_data()
 
-# User input section
+# --- INPUT SECTION ---
 st.markdown("---")
 st.subheader("\U0001F4AC Public User Text Input")
 
 input_type = st.radio("Choose input type:", ["Written", "Spoken"], horizontal=True)
-
 user_input = ""
 
 if input_type == "Spoken":
@@ -103,13 +102,17 @@ if input_type == "Spoken":
 else:
     user_input = st.text_area("Paste your written Urdu text here:", height=200)
 
+# Dialect prediction or manual override
 dialect_guess = ""
 if st.checkbox("Predict dialect automatically from input OR select below:"):
     dialect_guess = predict_dialect(user_input)
     st.info(f"Predicted dialect: {dialect_guess}")
 else:
-    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", ["Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
+    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", [
+        "Standard Urdu", "Sindhi-Urdu", "Punjabi-Urdu", "Seraiki-Urdu", "Pashto-Urdu", "Balochi-Urdu"
+    ])
 
+# Submit Button
 if st.button("Submit Text"):
     if user_input.strip():
         st.success(f"Text submitted successfully as {input_type} input for {dialect_guess} dialect.")
@@ -141,11 +144,10 @@ if st.button("Submit Text"):
     else:
         st.warning("Please provide input text.")
 
-# Map Initialization
+# --- MAP SECTION ---
+st.subheader("\U0001F5FA Urdu Dialect Map")
 m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
 
-# Add colored region circles and markers
-dialect_colors = {dial: assign_color(dial) for dial in data["Dialect Cluster"].unique()}
 for _, row in data.iterrows():
     color = assign_color(row['Dialect Cluster'])
     folium.Circle(
@@ -166,8 +168,8 @@ for _, row in data.iterrows():
     <b>Phonetic:</b> {row['Phonetic Variation']}<br>
     <b>Syntactic:</b> {row['Syntactic Structure']}<br>
     """
-    if not pd.isna(row.get("Audio File")):
-        popup_html += f'<audio controls src="audio/{row["Audio File"]}" type="audio/mpeg"></audio>'
+    if not pd.isna(row.get("Audio File")) and str(row["Audio File"]).strip():
+        st.audio(f"audio/{row['Audio File']}", format="audio/mp3")
 
     folium.Marker(
         location=[row["Latitude"], row["Longitude"]],
@@ -175,32 +177,29 @@ for _, row in data.iterrows():
         icon=folium.Icon(color=color)
     ).add_to(m)
 
-# Display the map
-st.subheader("\U0001F5FA Urdu Dialect Map")
 st_folium(m, width=1000, height=600)
 
-# Token Frequency
-st.subheader("\U0001F4CA Token Frequency in Dialect")
+# --- SIDEBAR STATISTICS ---
+st.sidebar.header("Dialect-Based Statistics")
+
 dialect_options = data["Dialect Cluster"].dropna().unique().tolist()
-selected_dialect = st.selectbox("Select a Dialect for Analysis", ["All"] + dialect_options)
-if selected_dialect != "All":
-    filtered_data = data[data["Dialect Cluster"] == selected_dialect]
-else:
-    filtered_data = data.copy()
+selected_dialect = st.sidebar.selectbox("Select Dialect", ["All"] + dialect_options)
+
+filtered_data = data.copy() if selected_dialect == "All" else data[data["Dialect Cluster"] == selected_dialect]
 
 all_tokens = []
 for phrase in filtered_data["Example Phrase"].dropna():
     all_tokens.extend(tokenize(phrase))
 token_counts = Counter(all_tokens).most_common(10)
-st.write(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
+st.sidebar.markdown("### Token Frequency")
+st.sidebar.dataframe(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
 
-# Collocates
-keyword = st.text_input("Enter a keyword for collocate analysis")
+keyword = st.sidebar.text_input("Keyword for Collocate Analysis")
 if keyword and selected_dialect != "All":
-    st.subheader(f"\U0001F50D Top Collocates with '{keyword}' in {selected_dialect}")
     collocates = extract_collocates(data, selected_dialect, keyword)
-    st.write(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
+    st.sidebar.markdown(f"### Top Collocates with '{keyword}'")
+    st.sidebar.dataframe(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
 
-# Raw Table
-st.subheader("\U0001F4CB Complete Annotated Dataset")
+# --- FINAL TABLE ---
+st.subheader("\U0001F4CB Annotated Dataset")
 st.dataframe(data.reset_index(drop=True), use_container_width=True)
