@@ -4,16 +4,16 @@ import folium
 from streamlit_folium import st_folium
 import os
 
-# CSV Path
-CSV_PATH = "dialect_samples_with_locations.csv"
+# Config
+CSV_PATH = "dialect_samples_extended.csv"
 AUDIO_FOLDER = "audio"
 
-# Required columns
+# Required CSV columns
 REQUIRED_COLUMNS = {
-    'Region', 'Dialect Cluster', 'Latitude', 'Longitude', 'Example Phrase'
+    'Region', 'Dialect Cluster', 'Latitude', 'Longitude',
+    'Example Phrase', 'Audio File'
 }
 
-# Load data
 @st.cache_data
 def load_data(path):
     df = pd.read_csv(path)
@@ -23,58 +23,60 @@ def load_data(path):
         return None
     return df
 
-# Create folium map
 def create_map(df):
     m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
     for _, row in df.iterrows():
-        popup_text = f"<b>{row['Dialect Cluster']}</b><br>{row['Example Phrase']}<br><i>{row['Region']}</i>"
+        popup = f"""
+        <b>{row['Dialect Cluster']}</b><br>
+        Phrase: {row['Example Phrase']}<br>
+        Region: {row['Region']}
+        """
         folium.Marker(
             location=[row['Latitude'], row['Longitude']],
-            popup=popup_text,
+            popup=popup,
             tooltip=row['Dialect Cluster'],
-            icon=folium.Icon(color="blue", icon="comment")
+            icon=folium.Icon(color="green", icon="info-sign")
         ).add_to(m)
     return m
 
-# Display audio player if audio file exists
-def play_audio(audio_file):
-    if isinstance(audio_file, str) and audio_file.strip():
-        file_path_mp3 = os.path.join(AUDIO_FOLDER, audio_file)
-        if os.path.exists(file_path_mp3):
-            with open(file_path_mp3, "rb") as f:
-                st.audio(f.read(), format="audio/m4a" if audio_file.endswith(".m4a") else "audio/mp3")
-        else:
-            st.warning("🔇 Audio file not found.")
+def play_audio(file_name):
+    if pd.isna(file_name) or not isinstance(file_name, str) or not file_name.strip():
+        st.info("No audio file available.")
+        return
+
+    full_path = os.path.join(AUDIO_FOLDER, file_name)
+    if os.path.exists(full_path):
+        audio_format = "audio/m4a" if file_name.lower().endswith(".m4a") else "audio/mp3"
+        with open(full_path, "rb") as f:
+            st.audio(f.read(), format=audio_format)
     else:
-        st.info("ℹ️ No audio file provided.")
+        st.warning(f"🔇 Audio file not found: {file_name}")
 
-# App UI
-st.set_page_config(page_title="Urdu Dialect Mapper", layout="wide")
-st.title("🗺️ Urdu Dialect Mapping Tool")
-st.markdown("This tool visualizes Urdu dialect clusters across regions of Pakistan. You can explore regional phrases, hear dialectal speech, and analyze geographic trends.")
+# App layout
+st.set_page_config(page_title="Urdu Dialect Mapping Tool", layout="wide")
+st.title("🗺️ Urdu Dialect Mapping and Profiling System")
+st.markdown("Visualizes regional Urdu dialects with linguistic examples and recorded speech samples.")
 
-# Load CSV
+# Load and validate data
 if not os.path.exists(CSV_PATH):
-    st.error(f"❌ File not found. Ensure '{CSV_PATH}' is in the correct folder.")
+    st.error(f"❌ File not found: {CSV_PATH}")
 else:
-    data = load_data(CSV_PATH)
-    if data is not None:
-        # Display the map
-        st.subheader("🧭 Dialect Map of Pakistan")
-        folium_map = create_map(data)
-        st_folium(folium_map, width=1100, height=550)
+    df = load_data(CSV_PATH)
+    if df is not None:
+        # Display map
+        st.subheader("🧭 Regional Dialect Map")
+        map_component = create_map(df)
+        st_folium(map_component, width=1150, height=550)
 
-        st.markdown("---")
-
-        # Display dialect data with audio
-        st.subheader("📋 Dialectal Data with Audio (if available)")
-        for idx, row in data.iterrows():
-            st.markdown(f"**{row['Dialect Cluster']}** – *{row['Region']}*")
+        # Display table and audio
+        st.subheader("🔉 Dialect Examples with Audio")
+        for idx, row in df.iterrows():
+            st.markdown(f"**Dialect Cluster:** {row['Dialect Cluster']}")
+            st.markdown(f"📍 *Region:* {row['Region']}")
             st.markdown(f"📝 *Phrase:* {row['Example Phrase']}")
-            if 'Audio File' in row and pd.notna(row['Audio File']):
-                play_audio(row['Audio File'])
+            play_audio(row.get("Audio File", ""))
             st.markdown("---")
 
         # Show full table
-        with st.expander("🔍 See Full Dialect Table"):
-            st.dataframe(data, use_container_width=True)
+        with st.expander("📊 View Full Data Table"):
+            st.dataframe(df, use_container_width=True)
