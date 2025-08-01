@@ -6,7 +6,6 @@ from collections import Counter
 from io import StringIO
 import os
 import re
-import requests
 
 # Set the page configuration
 st.set_page_config(page_title="Urdu Dialect Mapper", layout="wide")
@@ -58,24 +57,27 @@ selected_dialect = st.sidebar.selectbox("Select a Dialect", ["All"] + dialect_op
 # Sidebar - Collocate keyword
 keyword = st.sidebar.text_input("Enter a keyword for collocate analysis")
 
-# Sidebar - Dropbox link for corpus
+# Sidebar - Corpus Selection
 st.sidebar.markdown("---")
-st.sidebar.subheader("Dialect Corpus Uploader")
-dropbox_link = st.sidebar.text_input("Paste Dropbox Text File Link")
-corpus_tokens = []
+st.sidebar.header("\U0001F4DA Dialect Corpus Viewer")
 
-if dropbox_link and dropbox_link.startswith("https://www.dropbox.com"):
-    direct_link = dropbox_link.replace("www.dropbox.com", "dl.dropboxusercontent.com")
-    try:
-        response = requests.get(direct_link)
-        if response.status_code == 200:
-            text_data = response.text
-            corpus_tokens = tokenize(text_data)
-            st.sidebar.success("Corpus loaded and tokenized.")
-        else:
-            st.sidebar.error("Failed to fetch file from Dropbox.")
-    except Exception as e:
-        st.sidebar.error(f"Error fetching Dropbox file: {e}")
+corpus_files = {
+    "Standard Urdu": "standard_urdu_corpus.txt",
+    # Add more corpora here
+}
+
+selected_corpus = st.sidebar.selectbox("Select a Dialect Corpus", ["None"] + list(corpus_files.keys()))
+
+# Load and display selected corpus
+if selected_corpus != "None":
+    corpus_path = os.path.join("corpora", corpus_files[selected_corpus])
+    if os.path.exists(corpus_path):
+        with open(corpus_path, "r", encoding="utf-8") as f:
+            corpus_text = f.read()
+        st.subheader(f"\U0001F4D6 Corpus: {selected_corpus}")
+        st.text_area("Full Corpus Text", value=corpus_text, height=400)
+    else:
+        st.warning(f"Corpus file for {selected_corpus} not found.")
 
 # Filter data
 if selected_dialect != "All":
@@ -107,32 +109,23 @@ for _, row in filtered_data.iterrows():
     ).add_to(m)
 
 # Display the map
-st.subheader("🗺 Urdu Dialect Map")
+st.subheader("\U0001F5FA Urdu Dialect Map")
 st_folium(m, width=1000, height=550)
 
 # Token Frequency
-st.subheader("📊 Token Frequency in Dialect")
+st.subheader("\U0001F4CA Token Frequency in Dialect")
 all_tokens = []
 for phrase in filtered_data["Example Phrase"].dropna():
     all_tokens.extend(tokenize(phrase))
 token_counts = Counter(all_tokens).most_common(10)
 st.write(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
 
-# Dropbox Corpus Token Frequency
-if corpus_tokens:
-    st.subheader("📚 Token Frequency from Dropbox Corpus")
-    corpus_counts = Counter(corpus_tokens).most_common(10)
-    st.write(pd.DataFrame(corpus_counts, columns=["Token", "Frequency"]))
-
 # Collocates
 if keyword:
-    st.subheader(f"🔍 Top Collocates with '{keyword}' in {selected_dialect}")
+    st.subheader(f"\U0001F50D Top Collocates with '{keyword}' in {selected_dialect}")
     collocates = extract_collocates(data, selected_dialect, keyword)
     st.write(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
 
 # Raw Table
-st.subheader("📋 Complete Annotated Dataset")
+st.subheader("\U0001F4CB Complete Annotated Dataset")
 st.dataframe(filtered_data.reset_index(drop=True), use_container_width=True)
-
-# Remove excess space below
-st.markdown("<style>main > div:has(.block-container) > div:last-child {padding-bottom: 0px !important;}</style>", unsafe_allow_html=True)
