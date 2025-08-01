@@ -8,7 +8,6 @@ import os
 import re
 import json
 
-# Set the page configuration
 st.set_page_config(page_title="Digital Dialectal Mapper", layout="wide")
 
 # Sidebar Dialect Legend
@@ -23,7 +22,7 @@ st.sidebar.markdown("""
 - <span style='color:gray'>Other/Unknown</span>
 """, unsafe_allow_html=True)
 
-# Load the CSV data
+# Load Data
 def load_data():
     path = "dialect_samples_extended.csv"
     if os.path.exists(path):
@@ -42,7 +41,7 @@ def load_geojson():
             return json.load(f)
     return None
 
-# Tokenizer for simple word frequency
+# Simple tokenizer
 def tokenize(text):
     return re.findall(r'\b\w+\b', str(text).lower())
 
@@ -60,7 +59,7 @@ def extract_collocates(df, dialect, keyword, window=2):
                 collocates.update(context)
     return collocates.most_common(10)
 
-# Assign a color to each dialect
+# Assign colors to dialects
 def assign_color(dialect):
     color_map = {
         'Sindhi-Urdu': 'red',
@@ -72,7 +71,7 @@ def assign_color(dialect):
     }
     return color_map.get(dialect, 'gray')
 
-# Mock dialect prediction from text
+# Predict dialect based on keywords
 def predict_dialect(text):
     text = text.lower()
     if any(word in text for word in ["توھان", "اچو", "چئو"]):
@@ -88,11 +87,11 @@ def predict_dialect(text):
     else:
         return "Standard Urdu"
 
-# Load and process data
+# Load data
 data = load_data()
 geojson_data = load_geojson()
 
-# User input section
+# Input Section
 st.markdown("---")
 st.subheader("\U0001F4AC Public User Text Input")
 
@@ -133,11 +132,11 @@ if st.button("Submit Text"):
     else:
         st.warning("Please provide input text.")
 
-# Map Initialization
-m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+# Map display
+st.subheader("\U0001F5FA Urdu Dialect Map")
 selected_dialect_map = st.selectbox("Select a Dialect to Highlight on Map:", ["All"] + sorted(data["Dialect Cluster"].dropna().unique()))
+m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
 
-# Show dialect regions using GeoJSON
 if geojson_data:
     for feature in geojson_data["features"]:
         dialect = feature["properties"].get("dialect", "Unknown")
@@ -146,20 +145,18 @@ if geojson_data:
             folium.GeoJson(
                 feature,
                 name=dialect,
-                style_function=lambda f, c=color: {
-                    'fillColor': c,
-                    'color': c,
-                    'weight': 2,
-                    'fillOpacity': 0.4
+                style_function=lambda f, col=color: {
+                    'fillColor': col,
+                    'color': col,
+                    'weight': 1,
+                    'fillOpacity': 0.5
                 }
             ).add_to(m)
 
 folium.LayerControl().add_to(m)
-
-st.subheader("\U0001F5FA Urdu Dialect Map")
 st_folium(m, width=1000, height=600)
 
-# Token Frequency
+# Token frequency
 st.subheader("\U0001F4CA Token Frequency in Dialect")
 dialect_options = data["Dialect Cluster"].dropna().unique().tolist()
 selected_dialect = st.selectbox("Select a Dialect for Analysis", ["All"] + dialect_options)
@@ -178,6 +175,6 @@ if keyword and selected_dialect != "All":
     collocates = extract_collocates(data, selected_dialect, keyword)
     st.write(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
 
-# Raw Table
+# Data table
 st.subheader("\U0001F4CB Complete Annotated Dataset")
 st.dataframe(data.reset_index(drop=True), use_container_width=True)
