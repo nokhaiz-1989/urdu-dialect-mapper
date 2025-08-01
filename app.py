@@ -103,9 +103,7 @@ if st.checkbox("Predict dialect automatically from input OR select below:"):
     dialect_guess = predict_dialect(user_input)
     st.info(f"Predicted dialect: {dialect_guess}")
 else:
-    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", [
-        "Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", 
-        "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
+    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", ["Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
 
 if st.button("Submit Text"):
     if user_input.strip():
@@ -146,13 +144,13 @@ if geojson_data:
         color = assign_color(dialect)
         if selected_dialect_map == "All" or selected_dialect_map == dialect:
             folium.GeoJson(
-                data=feature,
+                feature,
                 name=dialect,
-                style_function=lambda feature, c=color: {
+                style_function=lambda f, c=color: {
                     'fillColor': c,
                     'color': c,
                     'weight': 2,
-                    'fillOpacity': 0.4
+                    'fillOpacity': 0.5
                 }
             ).add_to(m)
 
