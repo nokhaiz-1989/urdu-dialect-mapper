@@ -47,6 +47,22 @@ def assign_color(dialect):
     }
     return color_map.get(dialect, 'gray')
 
+# Mock dialect prediction from text
+def predict_dialect(text):
+    text = text.lower()
+    if any(word in text for word in ["توھان", "اچو", "چئو"]):
+        return "Sindhi-Urdu"
+    elif any(word in text for word in ["تساں", "وے", "ساڈا"]):
+        return "Seraiki-Urdu"
+    elif any(word in text for word in ["ساڈے", "نئیں", "اوہ"]):
+        return "Punjabi-Urdu"
+    elif any(word in text for word in ["کڑے", "زہ", "شو"]):
+        return "Pashto-Urdu"
+    elif any(word in text for word in ["چہ", "ہن"]):
+        return "Balochi-Urdu"
+    else:
+        return "Standard Urdu"
+
 # Load and process data
 data = load_data()
 
@@ -59,28 +75,54 @@ input_type = st.radio("Choose input type:", ["Written", "Spoken"], horizontal=Tr
 user_input = ""
 
 if input_type == "Spoken":
+    if 'transcription' not in st.session_state:
+        st.session_state.transcription = ""
+
     if st.button("Record and Transcribe Audio"):
         recognizer = sr.Recognizer()
         with sr.Microphone() as source:
             st.info("Recording... Speak now")
             audio = recognizer.listen(source, phrase_time_limit=5)
         try:
-            user_input = recognizer.recognize_google(audio, language="ur-PK")
+            st.session_state.transcription = recognizer.recognize_google(audio, language="ur-PK")
             st.success("Transcription successful")
-            st.write("Transcribed Text:", user_input)
         except sr.UnknownValueError:
+            st.session_state.transcription = ""
             st.error("Could not understand the audio")
         except sr.RequestError:
+            st.session_state.transcription = ""
             st.error("Speech recognition service is unavailable")
+
+    user_input = st.text_area("Here is your transcribed Urdu text (editable):", value=st.session_state.transcription, height=200)
+
 else:
     user_input = st.text_area("Paste your written Urdu text here:", height=200)
 
-
-dialect_guess = st.selectbox("Select dialect to associate with input (optional):", ["Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
+if st.checkbox("Predict dialect automatically from input"):
+    dialect_guess = predict_dialect(user_input)
+    st.info(f"Predicted dialect: {dialect_guess}")
+else:
+    dialect_guess = st.selectbox("Select dialect to associate with input (optional):", ["Standard Urdu", "Lahori Urdu", "Karachi Urdu", "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"])
 
 if st.button("Submit Text"):
     if user_input.strip():
         st.success(f"Text submitted successfully as {input_type} input for {dialect_guess} dialect.")
+
+        new_row = {
+            "Dialect Cluster": dialect_guess,
+            "Example Phrase": user_input,
+            "Region": "User Submission",
+            "Latitude": 30.3753,
+            "Longitude": 69.3451,
+            "Morphological Tag": "Pending",
+            "Semantic Feature": "Pending",
+            "Phonetic Variation": "Pending",
+            "Syntactic Structure": "Pending",
+            "Audio File": None
+        }
+
+        data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
+
         feature_table = pd.DataFrame([{
             "Dialect": dialect_guess,
             "Phonetic Feature (Accent/Prosody)": "Pending Analysis",
