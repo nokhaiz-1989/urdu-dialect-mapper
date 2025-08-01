@@ -2,95 +2,108 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from collections import Counter
+from io import StringIO
 import os
-import itertools
+import re
 
-# Configuration
-CSV_PATH = "dialect_samples_extended.csv"
-AUDIO_FOLDER = "audio"
-REQUIRED_COLUMNS = {
-    'Region', 'Dialect Cluster', 'Latitude', 'Longitude',
-    'Example Phrase', 'Audio File'
-}
+# Set the page configuration
+st.set_page_config(page_title="Urdu Dialect Mapper", layout="wide")
 
-@st.cache_data
-def load_data(path):
+# Load the CSV data
+def load_data():
+    path = "dialect_samples_extended.csv"
     df = pd.read_csv(path)
-    missing_cols = REQUIRED_COLUMNS - set(df.columns)
-    if missing_cols:
-        st.error(f"❗ CSV file must contain these columns: {REQUIRED_COLUMNS}")
-        return None
     return df
 
-def get_dialect_colors(dialects):
-    color_cycle = itertools.cycle([
-        "red", "blue", "green", "purple", "orange",
-        "darkred", "lightred", "beige", "darkblue",
-        "darkgreen", "cadetblue", "darkpurple", "white",
-        "pink", "lightblue", "lightgreen", "gray", "black"
-    ])
-    return {dialect: next(color_cycle) for dialect in sorted(dialects)}
+# Tokenizer for simple word frequency
+def tokenize(text):
+    return re.findall(r'\b\w+\b', str(text).lower())
 
-def create_map(df):
-    dialect_colors = get_dialect_colors(df["Dialect Cluster"].unique())
-    m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+# Collocate extractor
+def extract_collocates(df, dialect, keyword, window=2):
+    phrases = df[df["Dialect Cluster"] == dialect]["Example Phrase"].dropna().tolist()
+    collocates = Counter()
+    for phrase in phrases:
+        tokens = tokenize(phrase)
+        for i, token in enumerate(tokens):
+            if token == keyword:
+                start = max(0, i - window)
+                end = min(len(tokens), i + window + 1)
+                context = tokens[start:i] + tokens[i+1:end]
+                collocates.update(context)
+    return collocates.most_common(10)
 
-    for _, row in df.iterrows():
-        popup_html = f"""
-        <b>{row['Dialect Cluster']}</b><br>
-        <i>{row['Example Phrase']}</i><br>
-        Region: {row['Region']}
-        """
-        color = dialect_colors.get(row["Dialect Cluster"], "blue")
-        folium.Marker(
-            location=[row['Latitude'], row['Longitude']],
-            popup=popup_html,
-            tooltip=row['Dialect Cluster'],
-            icon=folium.Icon(color=color)
-        ).add_to(m)
+# Assign a color to each dialect
+def assign_color(dialect):
+    color_map = {
+        'Sindhi-Urdu': 'red',
+        'Punjabi-Urdu': 'blue',
+        'Saraiki-Urdu': 'green',
+        'Pashto-Urdu': 'orange',
+        'Balochi-Urdu': 'purple',
+        'Standard Urdu': 'darkblue'
+    }
+    return color_map.get(dialect, 'gray')
 
-    return m
+# Load and process data
+data = load_data()
 
-def play_audio(file_name):
-    if pd.isna(file_name) or not isinstance(file_name, str) or not file_name.strip():
-        st.info("No audio file available.")
-        return
+# Sidebar - Dialect filter
+st.sidebar.title("Filter & Analysis")
+dialect_options = data["Dialect Cluster"].dropna().unique().tolist()
+selected_dialect = st.sidebar.selectbox("Select a Dialect", ["All"] + dialect_options)
 
-    full_path = os.path.join(AUDIO_FOLDER, file_name)
-    if os.path.exists(full_path):
-        audio_format = "audio/m4a" if file_name.lower().endswith(".m4a") else "audio/mp3"
-        with open(full_path, "rb") as f:
-            st.audio(f.read(), format=audio_format)
-    else:
-        st.warning(f"🔇 Audio file not found: {file_name}")
+# Sidebar - Collocate keyword
+keyword = st.sidebar.text_input("Enter a keyword for collocate analysis")
 
-# Streamlit layout
-st.set_page_config(page_title="Urdu Dialect Mapping Tool", layout="wide")
-st.title("🗺️ Urdu Dialect Mapping and Profiling System")
-st.markdown("Visualizes regional Urdu dialects with linguistic examples and recorded speech samples.")
-
-# Load CSV
-if not os.path.exists(CSV_PATH):
-    st.error(f"❌ File not found: {CSV_PATH}")
+# Filter data
+if selected_dialect != "All":
+    filtered_data = data[data["Dialect Cluster"] == selected_dialect]
 else:
-    df = load_data(CSV_PATH)
-    if df is not None:
-        # Map + Table layout
-        col1, col2 = st.columns([2, 1])
+    filtered_data = data.copy()
 
-        with col1:
-            st.subheader("📍 Interactive Map (Color-coded by Dialect)")
-            map_component = create_map(df)
-            st_folium(map_component, width=900, height=550)
+# Map Initialization
+m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
 
-        with col2:
-            st.subheader("🔉 Play Dialect Samples")
-            for idx, row in df.iterrows():
-                st.markdown(f"**Dialect:** {row['Dialect Cluster']}")
-                st.markdown(f"📍 *{row['Region']}* — _{row['Example Phrase']}_")
-                play_audio(row['Audio File'])
-                st.markdown("---")
+# Add markers with color
+for _, row in filtered_data.iterrows():
+    popup_html = f"""
+    <b>Dialect:</b> {row['Dialect Cluster']}<br>
+    <b>Region:</b> {row['Region']}<br>
+    <b>Phrase:</b> {row['Example Phrase']}<br>
+    <b>Morph:</b> {row['Morphological Tag']}<br>
+    <b>Semantic:</b> {row['Semantic Feature']}<br>
+    <b>Phonetic:</b> {row['Phonetic Variation']}<br>
+    <b>Syntactic:</b> {row['Syntactic Structure']}<br>
+    """
+    if not pd.isna(row.get("Audio File")):
+        popup_html += f'<audio controls src="audio/{row["Audio File"]}" type="audio/mpeg"></audio>'
 
-        # Full table below with expandable option
-        with st.expander("📊 View Full Data Table", expanded=False):
-            st.dataframe(df, use_container_width=True)
+    folium.Marker(
+        location=[row["Latitude"], row["Longitude"]],
+        popup=folium.Popup(popup_html, max_width=300),
+        icon=folium.Icon(color=assign_color(row['Dialect Cluster']))
+    ).add_to(m)
+
+# Display the map
+st.subheader("🗺 Urdu Dialect Map")
+st_folium(m, width=1000, height=550)
+
+# Token Frequency
+st.subheader("📊 Token Frequency in Dialect")
+all_tokens = []
+for phrase in filtered_data["Example Phrase"].dropna():
+    all_tokens.extend(tokenize(phrase))
+token_counts = Counter(all_tokens).most_common(10)
+st.write(pd.DataFrame(token_counts, columns=["Token", "Frequency"]))
+
+# Collocates
+if keyword:
+    st.subheader(f"🔍 Top Collocates with '{keyword}' in {selected_dialect}")
+    collocates = extract_collocates(data, selected_dialect, keyword)
+    st.write(pd.DataFrame(collocates, columns=["Word", "Frequency"]))
+
+# Raw Table
+st.subheader("📋 Complete Annotated Dataset")
+st.dataframe(filtered_data.reset_index(drop=True), use_container_width=True)
