@@ -1,56 +1,78 @@
 import streamlit as st
-from streamlit_folium import st_folium
 import pandas as pd
 import folium
-import os
-import json
+from streamlit_folium import st_folium
 
-# ✅ Set Streamlit page config FIRST
+# ----------------------
+# Streamlit Page Config
+# ----------------------
 st.set_page_config(
     page_title="Digital Dialectal Mapper",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("📍 Digital Dialectal Mapper")
+# ----------------------
+# Title
+# ----------------------
+st.title("🗺️ Digital Dialectal Mapper for Urdu Dialects")
+st.markdown("Visualize and explore dialectal data of Urdu across different regions of Pakistan.")
 
-# Load GeoJSON file
-geojson_path = "dialect_regions.geojson"
-if os.path.exists(geojson_path):
-    with open(geojson_path, "r", encoding="utf-8") as f:
+# ----------------------
+# Load GeoJSON
+# ----------------------
+@st.cache_data
+def load_geojson():
+    import json
+    with open("dialect_regions.geojson", "r", encoding="utf-8") as f:
         geojson_data = json.load(f)
-else:
-    st.error(f"GeoJSON file not found: {geojson_path}")
-    st.stop()
+    return geojson_data
 
-# Load dialect sample CSV
-csv_path = "data/dialect_samples.csv"
-if os.path.exists(csv_path):
-    df = pd.read_csv(csv_path)
-else:
-    st.error(f"CSV file not found: {csv_path}")
-    st.stop()
+geojson_data = load_geojson()
 
-# Create Folium map
-m = folium.Map(location=[30.3753, 69.3451], zoom_start=5, tiles="CartoDB positron")
+# ----------------------
+# Load Dialect Data CSV
+# ----------------------
+@st.cache_data
+def load_data():
+    df = pd.read_csv("data/dialect_samples.csv")
+    return df
 
-# Add GeoJSON overlay
+df = load_data()
+
+# ----------------------
+# Map
+# ----------------------
+st.subheader("🗺️ Urdu Dialect Map")
+m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+
+# Color mapping per dialect
+dialect_colors = {
+    "Punjabi-Urdu": "red",
+    "Sindhi-Urdu": "green",
+    "Pashto-Urdu": "blue",
+    "Balochi-Urdu": "orange",
+    "Standard Urdu": "purple"
+}
+
+# Add GeoJSON layer with color coding
 folium.GeoJson(
     geojson_data,
-    name="Dialects",
-    tooltip=folium.GeoJsonTooltip(fields=["dialect"], aliases=["Dialect:"]),
+    name="geojson",
     style_function=lambda feature: {
-        'fillColor': '#3186cc',
-        'color': 'black',
-        'weight': 1,
-        'fillOpacity': 0.5,
+        "fillColor": dialect_colors.get(feature["properties"]["dialect"], "gray"),
+        "color": "black",
+        "weight": 1,
+        "fillOpacity": 0.5,
     },
+    tooltip=folium.GeoJsonTooltip(fields=["name", "dialect"])
 ).add_to(m)
 
 # Render the map
-st.subheader("🗺️ Map View")
-st_data = st_folium(m, width=1200, height=500)
+st_data = st_folium(m, width=1000, height=600)
 
-# Display dialect samples in table
-st.subheader("📋 Dialect Sample Data")
+# ----------------------
+# Show CSV Table
+# ----------------------
+st.subheader("📋 Dialect Samples Table")
 st.dataframe(df)
