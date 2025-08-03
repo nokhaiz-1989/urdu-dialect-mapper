@@ -775,4 +775,4 @@ elif main_tab == "📚 Corpus Management":
     st.header("📚 Dialect Corpus Management")
     
     # Corpus management tabs
-    corpus_tab1, corpus_tab2, corpus_tab3, corpus_tab4 = st.tabs([
+    corpus_tab1, corpus_tab2, corpus_tab3, corpus_tab4 = st.tabs
