@@ -1,4 +1,69 @@
-import streamlit as st
+elif main_tab == "🎤 Audio Input":
+    if not AUDIO_AVAILABLE:
+        st.error("🚫 Audio processing features are not available.")
+        st.markdown("""
+        **To enable audio features, please install the required libraries:**
+        
+        ```bash
+        pip install speech-recognition pydub st-audiorec
+        ```
+        
+        **Additional system dependencies may be required:**
+        - **Windows:** Install PyAudio: `pip install pyaudio`
+        - **Linux:** `sudo apt-get install portaudio19-dev python3-pyaudio ffmpeg`
+        - **Mac:** `brew install portaudio ffmpeg && pip install pyaudio`
+        
+        After installation, restart the application to enable audio features.
+        """)
+        st.stop()
+    
+    st.markdown("---")
+    st.header("🎤 Audio Input & Speech Recognition")
+    
+    st.markdown("""
+    This section allows you to:
+    - 📁 Upload audio files in various formats (WAV, MP3, M4A, etc.)
+    - 🎙️ Record audio directly in the browser
+    - 🔄 Automatically convert speech to text
+    - 📚 Add transcribed text to dialect corpus
+    """)
+    
+    # Audio input tabs
+    audio_tab1, audio_tab2, audio_tab3 = st.tabs([
+        "📁 Upload Audio", 
+        "🎙️ Record Audio", 
+        "📋 Audio History"
+    ])
+    
+    with audio_tab1:
+        st.subheader("📁 Upload Audio File")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Audio file upload
+            uploaded_audio = st.file_uploader(
+                "Choose an audio file",
+                type=['wav', 'mp3', 'm4a', 'ogg', 'flac', 'aac'],
+                help="Upload audio file for speech-to-text conversion"
+            )
+            
+            if uploaded_audio is not None:
+                # Display audio player
+                st.audio(uploaded_audio, format='audio/wav')
+                
+                # Audio processing options
+                st.markdown("### 🔧 Processing Options")
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    # Language selection for recognition
+                    recognition_language = st.selectbox(
+                        "Recognition Language:",
+                        [
+                            ("Urdu", "ur-PK"),
+                            ("English", "en-US"),
+                            ("Hindi", "hi-INimport streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
@@ -11,13 +76,21 @@ import numpy as np
 from datetime import datetime
 import zipfile
 from pathlib import Path
-import speech_recognition as sr
-import wave
 import tempfile
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
 import base64
-from st_audiorec import st_audiorec
+
+# Optional audio dependencies - graceful fallback if not available
+AUDIO_AVAILABLE = True
+try:
+    import speech_recognition as sr
+    import wave
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+    from st_audiorec import st_audiorec
+except ImportError as e:
+    AUDIO_AVAILABLE = False
+    st.warning("⚠️ Audio processing libraries not found. Audio features will be disabled.")
+    st.info("To enable audio features, install: pip install speech-recognition pydub st-audiorec")
 
 # Set the page configuration
 st.set_page_config(
@@ -74,175 +147,185 @@ with st.sidebar:
     if st.button("🔄 Refresh Corpus Stats"):
         st.rerun()
 
-# Audio Processing Functions
-def convert_audio_to_wav(audio_file, target_sample_rate=16000):
-    """Convert various audio formats to WAV format suitable for speech recognition."""
-    try:
-        # Load audio file using pydub
-        audio = AudioSegment.from_file(audio_file)
-        
-        # Convert to mono if stereo
-        if audio.channels > 1:
-            audio = audio.set_channels(1)
-        
-        # Set sample rate
-        audio = audio.set_frame_rate(target_sample_rate)
-        
-        # Export to temporary WAV file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-            audio.export(tmp_file.name, format="wav")
-            return tmp_file.name
-    except Exception as e:
-        st.error(f"Error converting audio: {e}")
-        return None
+# Audio Processing Functions (only if audio libraries are available)
+if AUDIO_AVAILABLE:
+    def convert_audio_to_wav(audio_file, target_sample_rate=16000):
+        """Convert various audio formats to WAV format suitable for speech recognition."""
+        try:
+            # Load audio file using pydub
+            audio = AudioSegment.from_file(audio_file)
+            
+            # Convert to mono if stereo
+            if audio.channels > 1:
+                audio = audio.set_channels(1)
+            
+            # Set sample rate
+            audio = audio.set_frame_rate(target_sample_rate)
+            
+            # Export to temporary WAV file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+                audio.export(tmp_file.name, format="wav")
+                return tmp_file.name
+        except Exception as e:
+            st.error(f"Error converting audio: {e}")
+            return None
 
-def transcribe_audio_chunks(audio_path, language='ur-PK'):
-    """Transcribe audio by splitting it into chunks to handle longer files."""
-    try:
-        # Load the audio file
-        audio = AudioSegment.from_wav(audio_path)
-        
-        # Split audio on silence to get chunks
-        chunks = split_on_silence(
-            audio,
-            min_silence_len=1000,  # 1 second of silence
-            silence_thresh=audio.dBFS - 14,
-            keep_silence=500,  # Keep 0.5 second of silence
-            seek_step=1
-        )
-        
-        # If no chunks found, use the whole audio
-        if not chunks:
-            chunks = [audio]
-        
-        # Initialize recognizer
-        recognizer = sr.Recognizer()
-        full_transcript = ""
-        
-        for i, chunk in enumerate(chunks):
-            # Export chunk to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as chunk_file:
-                chunk.export(chunk_file.name, format="wav")
-                
-                # Transcribe chunk
-                try:
-                    with sr.AudioFile(chunk_file.name) as source:
-                        audio_data = recognizer.record(source)
-                        
-                    # Try Google Speech Recognition first (supports Urdu)
+    def transcribe_audio_chunks(audio_path, language='ur-PK'):
+        """Transcribe audio by splitting it into chunks to handle longer files."""
+        try:
+            # Load the audio file
+            audio = AudioSegment.from_wav(audio_path)
+            
+            # Split audio on silence to get chunks
+            chunks = split_on_silence(
+                audio,
+                min_silence_len=1000,  # 1 second of silence
+                silence_thresh=audio.dBFS - 14,
+                keep_silence=500,  # Keep 0.5 second of silence
+                seek_step=1
+            )
+            
+            # If no chunks found, use the whole audio
+            if not chunks:
+                chunks = [audio]
+            
+            # Initialize recognizer
+            recognizer = sr.Recognizer()
+            full_transcript = ""
+            
+            for i, chunk in enumerate(chunks):
+                # Export chunk to temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as chunk_file:
+                    chunk.export(chunk_file.name, format="wav")
+                    
+                    # Transcribe chunk
                     try:
-                        text = recognizer.recognize_google(audio_data, language=language)
-                        full_transcript += text + " "
-                    except sr.UnknownValueError:
-                        # Try with English if Urdu fails
+                        with sr.AudioFile(chunk_file.name) as source:
+                            audio_data = recognizer.record(source)
+                            
+                        # Try Google Speech Recognition first (supports Urdu)
                         try:
-                            text = recognizer.recognize_google(audio_data, language='en-US')
-                            full_transcript += f"[EN: {text}] "
+                            text = recognizer.recognize_google(audio_data, language=language)
+                            full_transcript += text + " "
                         except sr.UnknownValueError:
-                            full_transcript += f"[Chunk {i+1}: Inaudible] "
-                    except sr.RequestError as e:
-                        st.warning(f"Could not request results from speech recognition service: {e}")
-                        # Fallback to other recognition methods
-                        try:
-                            text = recognizer.recognize_sphinx(audio_data)
-                            full_transcript += f"[Offline: {text}] "
-                        except:
+                            # Try with English if Urdu fails
+                            try:
+                                text = recognizer.recognize_google(audio_data, language='en-US')
+                                full_transcript += f"[EN: {text}] "
+                            except sr.UnknownValueError:
+                                full_transcript += f"[Chunk {i+1}: Inaudible] "
+                        except sr.RequestError as e:
+                            st.warning(f"Could not request results from speech recognition service: {e}")
                             full_transcript += f"[Chunk {i+1}: Recognition failed] "
-                
-                except Exception as e:
-                    full_transcript += f"[Chunk {i+1}: Error - {str(e)}] "
-                
-                # Clean up temporary file
-                try:
-                    os.unlink(chunk_file.name)
-                except:
-                    pass
+                    
+                    except Exception as e:
+                        full_transcript += f"[Chunk {i+1}: Error - {str(e)}] "
+                    
+                    # Clean up temporary file
+                    try:
+                        os.unlink(chunk_file.name)
+                    except:
+                        pass
+            
+            return full_transcript.strip()
         
-        return full_transcript.strip()
-    
-    except Exception as e:
-        st.error(f"Error in audio transcription: {e}")
-        return None
+        except Exception as e:
+            st.error(f"Error in audio transcription: {e}")
+            return None
 
-def transcribe_audio_simple(audio_path, language='ur-PK'):
-    """Simple transcription for shorter audio files."""
-    try:
-        recognizer = sr.Recognizer()
-        
-        with sr.AudioFile(audio_path) as source:
-            # Adjust for ambient noise
-            recognizer.adjust_for_ambient_noise(source, duration=1)
-            audio_data = recognizer.record(source)
-        
-        # Try multiple recognition methods
-        transcript = ""
-        
-        # Method 1: Google Speech Recognition (best for Urdu)
+    def transcribe_audio_simple(audio_path, language='ur-PK'):
+        """Simple transcription for shorter audio files."""
         try:
-            transcript = recognizer.recognize_google(audio_data, language=language)
-            return transcript
-        except sr.UnknownValueError:
-            pass
-        except sr.RequestError:
-            pass
+            recognizer = sr.Recognizer()
+            
+            with sr.AudioFile(audio_path) as source:
+                # Adjust for ambient noise
+                recognizer.adjust_for_ambient_noise(source, duration=1)
+                audio_data = recognizer.record(source)
+            
+            # Try multiple recognition methods
+            transcript = ""
+            
+            # Method 1: Google Speech Recognition (best for Urdu)
+            try:
+                transcript = recognizer.recognize_google(audio_data, language=language)
+                return transcript
+            except sr.UnknownValueError:
+                pass
+            except sr.RequestError:
+                pass
+            
+            # Method 2: Try with English
+            try:
+                transcript = recognizer.recognize_google(audio_data, language='en-US')
+                return f"[EN] {transcript}"
+            except sr.UnknownValueError:
+                pass
+            except sr.RequestError:
+                pass
+            
+            return "Could not transcribe audio"
         
-        # Method 2: Try with English
-        try:
-            transcript = recognizer.recognize_google(audio_data, language='en-US')
-            return f"[EN] {transcript}"
-        except sr.UnknownValueError:
-            pass
-        except sr.RequestError:
-            pass
-        
-        # Method 3: Offline recognition (fallback)
-        try:
-            transcript = recognizer.recognize_sphinx(audio_data)
-            return f"[Offline] {transcript}"
-        except:
-            pass
-        
-        return "Could not transcribe audio"
-    
-    except Exception as e:
-        st.error(f"Error in simple transcription: {e}")
-        return None
+        except Exception as e:
+            st.error(f"Error in simple transcription: {e}")
+            return None
 
-def detect_language_from_audio_text(text):
-    """Detect if the transcribed text is likely Urdu/Arabic script or English."""
-    if not text:
+    def detect_language_from_audio_text(text):
+        """Detect if the transcribed text is likely Urdu/Arabic script or English."""
+        if not text:
+            return "unknown"
+        
+        # Count Urdu/Arabic characters
+        urdu_chars = len(re.findall(r'[\u0600-\u06FF]', text))
+        english_chars = len(re.findall(r'[a-zA-Z]', text))
+        
+        if urdu_chars > english_chars:
+            return "urdu"
+        elif english_chars > 0:
+            return "english"
+        else:
+            return "unknown"
+
+    def save_audio_file(audio_data, dialect, filename_prefix="audio"):
+        """Save audio file to dialect-specific directory."""
+        try:
+            # Create audio directory for dialect
+            audio_dir = Path(f"corpus/{dialect.replace(' ', '_').replace('-', '_')}/audio")
+            audio_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Generate filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{filename_prefix}_{timestamp}.wav"
+            file_path = audio_dir / filename
+            
+            # Save audio data
+            with open(file_path, "wb") as f:
+                f.write(audio_data)
+            
+            return str(file_path)
+        except Exception as e:
+            st.error(f"Error saving audio file: {e}")
+            return None
+
+else:
+    # Placeholder functions when audio libraries are not available
+    def convert_audio_to_wav(*args, **kwargs):
+        st.error("Audio processing not available. Please install required libraries.")
+        return None
+    
+    def transcribe_audio_chunks(*args, **kwargs):
+        st.error("Audio transcription not available. Please install required libraries.")
+        return None
+    
+    def transcribe_audio_simple(*args, **kwargs):
+        st.error("Audio transcription not available. Please install required libraries.")
+        return None
+    
+    def detect_language_from_audio_text(*args, **kwargs):
         return "unknown"
     
-    # Count Urdu/Arabic characters
-    urdu_chars = len(re.findall(r'[\u0600-\u06FF]', text))
-    english_chars = len(re.findall(r'[a-zA-Z]', text))
-    
-    if urdu_chars > english_chars:
-        return "urdu"
-    elif english_chars > 0:
-        return "english"
-    else:
-        return "unknown"
-
-def save_audio_file(audio_data, dialect, filename_prefix="audio"):
-    """Save audio file to dialect-specific directory."""
-    try:
-        # Create audio directory for dialect
-        audio_dir = Path(f"corpus/{dialect.replace(' ', '_').replace('-', '_')}/audio")
-        audio_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Generate filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{filename_prefix}_{timestamp}.wav"
-        file_path = audio_dir / filename
-        
-        # Save audio data
-        with open(file_path, "wb") as f:
-            f.write(audio_data)
-        
-        return str(file_path)
-    except Exception as e:
-        st.error(f"Error saving audio file: {e}")
+    def save_audio_file(*args, **kwargs):
+        st.error("Audio saving not available. Please install required libraries.")
         return None
 @st.cache_data
 def load_corpus_index():
@@ -606,7 +689,7 @@ geojson_data = load_geojson()
 # Main navigation
 main_tab = st.selectbox(
     "Select Main Section:",
-    ["🏠 Home & Map", "📚 Corpus Management", "🎤 Audio Input", "📊 Analytics", "💬 Text Input"],
+    ["🏠 Home & Map", "📚 Corpus Management", "🎤 Audio Input", "📊 Analytics", "💬 Text Input"] if AUDIO_AVAILABLE else ["🏠 Home & Map", "📚 Corpus Management", "📊 Analytics", "💬 Text Input"],
     index=0
 )
 
