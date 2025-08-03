@@ -4,3 +4,5 @@ folium
 streamlit-folium
 SpeechRecognition
 pyaudio ; sys_platform == "win32"
+pip install pydub
+
