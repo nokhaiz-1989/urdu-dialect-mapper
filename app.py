@@ -1313,6 +1313,90 @@ elif main_tab == "🎤 Audio Input":
             st.info("No audio files found in corpus.")
 
 elif main_tab == "💬 Text Input":
+    # User input section
+    st.markdown("---")
+    st.subheader("💬 Public User Text Input")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        user_input = st.text_area(
+            "Paste your written Urdu text here:", 
+            height=150,
+            placeholder="یہاں اردو متن لکھیں..."
+        )
+
+    with col2:
+        input_type = st.radio("Input type:", ["Written"], horizontal=True)
+        
+        auto_predict = st.checkbox("🤖 Auto-predict dialect")
+        
+        if auto_predict and user_input.strip():
+            dialect_guess = predict_dialect(user_input)
+            st.success(f"Predicted: **{dialect_guess}**")
+        else:
+            dialect_options = [
+                "Standard Urdu", "Lahori Urdu", "Karachi Urdu", 
+                "Peshawari Urdu", "Quetta Urdu", "Seraiki-Urdu", "Sindhi-Urdu"
+            ]
+            dialect_guess = st.selectbox("Select dialect:", dialect_options)
+
+    # Option to add to corpus
+    add_to_corpus = st.checkbox("📚 Also add this text to corpus")
+
+    if st.button("📤 Submit Text", type="primary"):
+        if user_input.strip():
+            # Add timestamp for better tracking
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            new_row = {
+                "Dialect Cluster": dialect_guess,
+                "Example Phrase": user_input.strip(),
+                "Region": "User Submission",
+                "Latitude": 30.3753,  # Default Pakistan center
+                "Longitude": 69.3451,
+                "Morphological Tag": "Pending",
+                "Semantic Feature": "Pending",
+                "Phonetic Variation": "Pending",
+                "Syntactic Structure": "Pending",
+                "Audio File": None,
+                "Timestamp": timestamp
+            }
+            
+            # Add to dataframe
+            data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
+            
+            # Add to corpus if requested
+            if add_to_corpus:
+                filename = f"user_submission_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                metadata = {
+                    "source": "User Submission",
+                    "input_method": "web_interface",
+                    "submission_date": timestamp,
+                    "predicted_dialect": dialect_guess
+                }
+                
+                if save_corpus_file(dialect_guess, filename, user_input.strip(), metadata):
+                    st.success(f"✅ Text submitted and added to {dialect_guess} corpus!")
+                else:
+                    st.success(f"✅ Text submitted successfully as {dialect_guess} dialect!")
+                    st.warning("⚠️ Could not add to corpus, but submission recorded.")
+            else:
+                st.success(f"✅ Text submitted successfully as {dialect_guess} dialect!")
+            
+            # Show preliminary analysis
+            with st.expander("🔍 Preliminary Linguistic Analysis"):
+                feature_table = pd.DataFrame([{
+                    "Dialect": dialect_guess,
+                    "Text Length": len(user_input),
+                    "Word Count": len(tokenize(user_input)),
+                    "Phonetic Feature": "Pending Analysis",
+                    "Morphological Variation": "Pending Analysis",
+                    "Semantic Feature": "Pending Analysis"
+                }])
+                st.dataframe(feature_table, use_container_width=True)
+        else:
+            st.warning("⚠️ Please provide input text.")
 st.markdown("---")
 st.subheader("💬 Public User Text Input")
 
