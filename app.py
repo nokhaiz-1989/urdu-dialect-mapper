@@ -1,98 +1,109 @@
 import streamlit as st
 import pandas as pd
-from pydub import AudioSegment
-import speech_recognition as sr
-import os
 import folium
 from streamlit_folium import st_folium
+import os
+import speech_recognition as sr
+from pydub import AudioSegment
+import tempfile
+import base64
+from datetime import datetime
 
-# Set page config
 st.set_page_config(page_title="Digital Dialectal Mapper", layout="wide")
 
 st.title("🗺️ Digital Dialectal Mapper for Urdu Dialects")
-st.write("Upload an Urdu audio sample to transcribe it and predict the dialect.")
+st.markdown("Upload or record speech samples to map predicted dialects across Pakistan.")
 
-# Create session state for storing data
-if "data" not in st.session_state:
-    st.session_state.data = []
+# Load or initialize data
+DATA_FILE = "dialect_samples.csv"
+if os.path.exists(DATA_FILE):
+    df = pd.read_csv(DATA_FILE)
+else:
+    df = pd.DataFrame(columns=["Timestamp", "Transcription", "Predicted Dialect", "Latitude", "Longitude"])
 
-# Upload audio file
-uploaded_file = st.file_uploader("Upload an audio file (.mp3 or .wav)", type=["mp3", "wav"])
-
-def transcribe_audio(audio_path):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(audio_path) as source:
-        audio = recognizer.record(source)
-    try:
-        text = recognizer.recognize_google(audio, language="ur-PK")
-        return text
-    except sr.UnknownValueError:
-        return "Could not understand the audio"
-    except sr.RequestError:
-        return "API unavailable"
-
+# Dummy dialect prediction based on keywords
 def predict_dialect(text):
-    # Dummy rule-based dialect prediction logic
     text = text.lower()
-    if any(word in text for word in ["توھان", "اچي", "وڃو"]):
-        return "Sindhi-Urdu"
-    elif any(word in text for word in ["ساڈے", "توہاڈے", "کیہہ"]):
-        return "Punjabi-Urdu"
-    elif any(word in text for word in ["تمھیں", "مجھے", "کیا"]):
+    if "aahe" in text or "tho" in text:
+        return "Sindhi Urdu"
+    elif "hain ji" in text or "nahi kara" in text:
+        return "Punjabi Urdu"
+    elif "kar raha hoon" in text:
         return "Standard Urdu"
+    elif "balochi" in text:
+        return "Balochi Urdu"
     else:
         return "Unknown"
 
-def get_dialect_location(dialect):
-    locations = {
-        "Sindhi-Urdu": [25.3969, 68.3578],    # Hyderabad
-        "Punjabi-Urdu": [31.5204, 74.3587],   # Lahore
-        "Standard Urdu": [33.6844, 73.0479],  # Islamabad
-    }
-    return locations.get(dialect, [30.3753, 69.3451])  # Default: Pakistan center
+# Record or upload audio
+st.header("🎙️ Provide Audio Input")
 
-if uploaded_file is not None:
-    st.audio(uploaded_file, format="audio/wav")
-    
-    # Save uploaded file
-    with open("temp_audio", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    # Convert to WAV if needed
-    if uploaded_file.type == "audio/mpeg":
-        audio = AudioSegment.from_file("temp_audio", format="mp3")
-        audio.export("converted.wav", format="wav")
-        audio_path = "converted.wav"
-    else:
-        audio_path = "temp_audio"
+audio_file = st.file_uploader("Upload a .wav file", type=["wav"])
+if audio_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+        tmp_file.write(audio_file.read())
+        temp_path = tmp_file.name
 
-    # Transcribe
-    with st.spinner("Transcribing..."):
-        transcription = transcribe_audio(audio_path)
-    
-    st.subheader("📄 Transcription")
-    st.success(transcription)
+    # Convert to suitable format (optional)
+    audio = AudioSegment.from_file(temp_path)
+    audio.export("converted.wav", format="wav")
 
-    # Predict dialect
-    dialect = predict_dialect(transcription)
-    st.subheader("🔍 Predicted Dialect")
-    st.info(dialect)
+    recognizer = sr.Recognizer()
+    with sr.AudioFile("converted.wav") as source:
+        audio_data = recognizer.record(source)
+        try:
+            transcription = recognizer.recognize_google(audio_data, language="ur-PK")
+            st.success("Transcription: " + transcription)
+        except sr.UnknownValueError:
+            st.warning("Could not understand audio")
+            transcription = ""
+        except sr.RequestError as e:
+            st.error(f"API Error: {e}")
+            transcription = ""
 
-    # Append to session data
-    st.session_state.data.append({
-        "Transcription": transcription,
-        "Predicted Dialect": dialect
-    })
+    # Prediction and location
+    predicted_dialect = predict_dialect(transcription)
+    st.markdown(f"**Predicted Dialect:** `{predicted_dialect}`")
 
-    # Show map
-    coords = get_dialect_location(dialect)
-    st.subheader("🗺️ Dialect Location Map")
-    map_ = folium.Map(location=coords, zoom_start=6)
-    folium.Marker(coords, tooltip=dialect).add_to(map_)
-    st_folium(map_, width=700)
+    col1, col2 = st.columns(2)
+    with col1:
+        lat = st.number_input("Latitude", value=30.3753)
+    with col2:
+        lon = st.number_input("Longitude", value=69.3451)
 
-# Show table
-if st.session_state.data:
-    st.subheader("🧾 All Samples Processed")
-    df = pd.DataFrame(st.session_state.data)
-    st.dataframe(df, use_container_width=True)
+    if st.button("➕ Add to Map"):
+        df = pd.concat([
+            df,
+            pd.DataFrame([{
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Transcription": transcription,
+                "Predicted Dialect": predicted_dialect,
+                "Latitude": lat,
+                "Longitude": lon
+            }])
+        ], ignore_index=True)
+        df.to_csv(DATA_FILE, index=False)
+        st.success("Sample added successfully!")
+
+# Map
+st.header("🗺️ Dialect Map")
+
+m = folium.Map(location=[30.3753, 69.3451], zoom_start=5)
+for _, row in df.iterrows():
+    folium.Marker(
+        [row["Latitude"], row["Longitude"]],
+        tooltip=row["Predicted Dialect"],
+        popup=f"{row['Transcription'][:100]}..."
+    ).add_to(m)
+
+st_data = st_folium(m, width=700, height=500)
+
+# Table
+st.header("📄 All Samples")
+st.dataframe(df)
+
+# Download
+csv = df.to_csv(index=False)
+b64 = base64.b64encode(csv.encode()).decode()
+st.markdown(
+    f'<a href="data:file/csv;base64,{b64}" download="dialect_samples._
